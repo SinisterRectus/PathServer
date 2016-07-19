@@ -1,13 +1,11 @@
-local uv = require('uv')
-local timer = require('timer')
-local config = require('./config')
-local Vector3 = require('./structs/Vector3')
+local uv = require('luv')
 local format = string.format
 local random = math.random
 local floor = math.floor
 local char = string.char
 
-local Deque = require('./classes/Deque')
+local host = '127.0.0.1'
+local port = 7780
 
 local queue = Deque()
 
@@ -39,25 +37,24 @@ end
 local n = 0
 local ready = false
 local server = uv.new_tcp()
-p('connecting')
-server:connect(config.host, config.port, function(err)
+print('connecting')
+server:connect(host, port, function(err)
 	assert(not err, err)
-	p('connected')
+	print('connected')
 	server:read_start(function(err, data)
 		if data then
 			ready = data == 'ready'
 		else
-			p(err)
+			print(err)
 			server:shutdown()
 			server:close()
-			p('disconnected')
-			os.exit()
+			print('disconnected')
 		end
 	end)
-	uv.new_timer():start(10, 10, function()
+	uv.new_idle():start(function()
 		n = n + 1
-		if n > 1000 then return end
-		p(n)
+		if n > 10 then return end
+		print(n)
 		local v1 = Vector3(random(-16384, 16383), random(-16384, 16383), random(-16384, 16383))
 		local v2 = Vector3(v1.x + random(-128, 128), v1.y + random(-128, 128), v1.z + random(-128, 128))
 		queue:pushRight(encodeVector(v1) .. encodeVector(v2))
@@ -70,3 +67,5 @@ uv.new_idle():start(function()
 		server:write(queue:popLeft())
 	end
 end)
+
+Events:Subscribe('PreTick', function() uv.run('nowait') end)
