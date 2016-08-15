@@ -3,20 +3,18 @@ local abs, sqrt, min = math.abs, math.sqrt, math.min
 
 local ffi = require('ffi')
 
-local struct = require('../struct')
+local class = require('../class')
 local constants = require('../constants')
 
 local DIAGONAL_DIFF = constants.DIAGONAL_DIFF
 
-local Vector3 = struct('Vector3')
+local Vector3 = class('Vector3')
 
 ffi.cdef[[
 typedef struct {
 	float x, y, z;
 } Vector3;
 ]]
-
-ffi.metatype('Vector3', Vector3)
 
 function Vector3:__tostring()
 	return format("Vector3(%g, %g, %g)", self.x, self.y, self.z)
@@ -73,4 +71,5 @@ function Vector3:euclideanDistance2D(other)
 	return sqrt(self:euclideanDistanceSquared2D(other))
 end
 
+ffi.metatype('Vector3', Vector3)
 return Vector3

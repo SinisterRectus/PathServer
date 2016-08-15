@@ -1,9 +1,15 @@
+local ffi = require('ffi')
+
 local meta = {}
 
 function meta:__call(...)
-	local obj = setmetatable({}, self)
-	obj:__init(...)
-	return obj
+	if self.__init then
+		local obj = setmetatable({}, self)
+		obj:__init(...)
+		return obj
+	else
+		return ffi.new(self.__name, ...)
+	end
 end
 
 function meta:__tostring()

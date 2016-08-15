@@ -3,8 +3,8 @@ local format = string.format
 local wrap, yield = coroutine.wrap, coroutine.yield
 local floor, random, abs = math.floor, math.random, math.abs
 
-local Node = require('../structs/Node')
-local Vector3 = require('../structs/Vector3')
+local Node = require('../classes/Node')
+local Vector3 = require('../classes/Vector3')
 
 local class = require('../class')
 local config = require('../config')

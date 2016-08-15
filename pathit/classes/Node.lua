@@ -2,12 +2,11 @@ local format = string.format
 
 local ffi = require('ffi')
 
-local struct = require('../struct')
+local class = require('../class')
 local config = require('../config')
 local Vector3 = require('./Vector3')
 
-local Node = struct('Node', Vector3)
--- inherits the methods, not the cdata structure
+local Node = class('Node', Vector3)
 
 ffi.cdef[[
 typedef struct {
@@ -15,8 +14,6 @@ typedef struct {
 	uint8_t n;
 } Node;
 ]]
-
-ffi.metatype('Node', Node)
 
 function Node:__tostring()
 	return format("Node(%i, %i, %i, %i)", self.x, self.y, self.z, self.n)
@@ -29,4 +26,5 @@ end
 
 Node.getHeuristicCost = Node[config.heuristic]
 
+ffi.metatype('Node', Node)
 return Node

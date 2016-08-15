@@ -1,4 +1,4 @@
-local Vector3 = require('./structs/Vector3')
+local Vector3 = require('./classes/Vector3')
 
 local codecs = {}
 
