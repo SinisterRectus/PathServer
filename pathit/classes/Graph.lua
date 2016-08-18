@@ -39,6 +39,7 @@ function Graph:__init()
 	self.cellCount = 0
 	self.nodeCount = 0
 	self.queue = Deque()
+	self.path = config.pathToCells .. '/%s_%s.cell'
 end
 
 function Graph:addCell(cellX, cellY, count)
@@ -162,7 +163,7 @@ end
 
 function Graph:loadCell(cellX, cellY)
 
-	local path = format('./cells/%s_%s.cell', cellX, cellY)
+	local path = format(self.path, cellX, cellY)
 	local file = open(path, 'rb')
 	if not file then return end
 
@@ -208,11 +209,12 @@ function Graph:getPath(start, goal)
 	local count = 0
 	local frontier, visited = {}, {}
 	local cameFrom, costSoFar = {}, {}
+	local visitedLimit = config.visitedLimit
 
 	costSoFar[start] = 0
 	frontier[start] = start:getHeuristicCost(goal)
 
-	while next(frontier) and count < config.visitedLimit do
+	while next(frontier) and count < visitedLimit do
 
 		-- naive priority queue
 		local lowest, current = HUGE
@@ -275,7 +277,6 @@ function Graph:startServer(host, port)
 	end)
 	p(format('Listening for connections at %s on port %s', host, port))
 	self.server = server
-
 end
 
 function Graph:processData(data, client)
@@ -313,7 +314,6 @@ end
 
 
 function Graph:manageMemory()
-
 	if self.cellCount > config.cellLimit then
 		local time, oldest = HUGE
 		for cell in self:getCells() do
@@ -324,7 +324,6 @@ function Graph:manageMemory()
 		end
 		self:unloadCell(oldest.x, oldest.y)
 	end
-
 end
 
 return Graph
