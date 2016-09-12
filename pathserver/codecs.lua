@@ -1,3 +1,5 @@
+local char = string.char
+local floor = math.floor
 local Vector3 = require('./classes/Vector3')
 
 local codecs = {}
@@ -14,9 +16,9 @@ local function decodeShort(s)
 end
 
 function codecs.encodeVector(v)
-	local x = encodeShort(v[1])
-	local y = encodeShort(v[2])
-	local z = encodeShort(v[3])
+	local x = encodeShort(v.x)
+	local y = encodeShort(v.y)
+	local z = encodeShort(v.z)
 	return x .. y .. z
 end
 

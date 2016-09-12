@@ -1,4 +1,4 @@
-local ffi = require('ffi')
+local new = require('ffi').new
 
 local meta = {}
 
@@ -8,7 +8,7 @@ function meta:__call(...)
 		obj:__init(...)
 		return obj
 	else
-		return ffi.new(self.__name, ...)
+		return new(self.__name, ...)
 	end
 end
 

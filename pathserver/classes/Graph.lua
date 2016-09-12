@@ -2,6 +2,7 @@ local time = os.time
 local open = io.open
 local band = bit.band
 local format = string.format
+local insert = table.insert
 local min, max = math.min, math.max
 local wrap, yield = coroutine.wrap, coroutine.yield
 local floor, random = math.floor, math.random
@@ -31,6 +32,9 @@ local directions = {
 	{0x40, 1,-1}, -- forward right
 	{0x80,-1, 1}, -- backward left
 }
+
+local encodeVector = codecs.encodeVector
+local decodeVector = codecs.decodeVector
 
 local Graph = class('Graph')
 
@@ -270,10 +274,10 @@ function Graph:startServer(host, port)
 			else
 				client:shutdown()
 				client:close()
-				p('Path client disconnected: ' .. err)
+				p('Path client disconnected')
 			end
 		end)
-		client:write('ready')
+		client:write('0')
 	end)
 	p(format('Listening for connections at %s on port %s', host, port))
 	self.server = server
@@ -281,15 +285,16 @@ end
 
 function Graph:processData(data, client)
 
-	local v1 = codecs.decodeVector(data:sub(1, 6))
-	local v2 = codecs.decodeVector(data:sub(7, 12))
+	local id = data:sub(1, 1)
+	local v1 = decodeVector(data:sub(2, 7))
+	local v2 = decodeVector(data:sub(8, 13))
 	local cellX1, cellY1 = self:getCellXYByPositionXZ(v1.x, v1.z)
 	local cellX2, cellY2 = self:getCellXYByPositionXZ(v2.x, v2.z)
 	local minX, maxX = min(cellX1, cellX2), max(cellX1, cellX2)
 	local minY, maxY = min(cellY1, cellY2), max(cellY1, cellY2)
 
 	if maxX - minX > 1 or maxY - minY > 1 then
-		client:write('too far')
+		client:write('1' .. id)
 	else
 		for x = minX, maxX do
 			for y = minY, maxY do
@@ -304,11 +309,19 @@ function Graph:processData(data, client)
 		local n1 = self:getNearestNode(v1)
 		local n2 = self:getNearestNode(v2)
 		local path, visited = self:getPath(n1, n2)
-		p(path and #path, table.count(visited))
+
+		if path then
+			local res = {'2', id}
+			for _, node in ipairs(path) do
+				insert(res, encodeVector(node))
+			end
+			client:write(res)
+		else
+			client:write('1' .. id)
+		end
 	end
 
 	self:manageMemory()
-	client:write('ready')
 
 end
 
