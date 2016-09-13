@@ -92,23 +92,26 @@ function PathServer:processData(data)
 	SetUnicode(false)
 
 	local type = data:sub(1, 1)
-	if type == '0' then return end
-
-	local path = nil
 	local id = data:sub(2, 2):byte()
+	local path = nil
 
-	if type == '2' then
+	if type == '0' then
+		return
+	elseif type =='1' then
+		self.callbacks[id]({error = 'Path endpoints too far apart!'})
+	elseif type == '2' then
+		self.callbacks[id]({error = 'Path could not be found!'})
+	elseif type == '3' then
 		path = {}
 		for i = 3, #data, 6 do
 			local str = data:sub(i, i + 5)
 			insert(path, decodeVector(str))
 		end
+		self.callbacks[id]({path = path})
 	end
 
-	SetUnicode(true)
-
-	self.callbacks[id](path)
 	self.callbacks[id] = nil
+	SetUnicode(true)
 
 end
 
