@@ -311,13 +311,13 @@ function Graph:processData(data, client)
 		local path, visited = self:getPath(n1, n2)
 
 		if path then
-			local res = {'2', id}
+			local res = {'3', id}
 			for _, node in ipairs(path) do
 				insert(res, encodeVector(node))
 			end
 			client:write(res)
 		else
-			client:write('1' .. id)
+			client:write('2' .. id)
 		end
 	end
 
