@@ -28,13 +28,16 @@ end)
 local function stressTest()
 
 	local timer = Timer()
-	local delay = 100 -- milliseconds
+	local delay = 500 -- milliseconds
 
 	Events:Subscribe('PostTick', function()
 		if timer:GetMilliseconds() < delay then return end
 		timer:Restart()
 		for player in Server:GetPlayers() do
-			getPathForPlayer(pathServer, player)
+			local state = player:GetState()
+			if state == 4 or state == 5 then
+				getPathForPlayer(pathServer, player)
+			end
 		end
 	end)
 

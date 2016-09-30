@@ -1,16 +1,13 @@
 local path, start, stop
-local color = Color.Magenta
-
 Network:Subscribe('NewPath', function(args)
-	start = args.start
-	stop = args.stop
-	path = args.path
+	start, stop, path = args.start, args.stop, args.path
 end)
 
 Events:Subscribe('KeyUp', function(args)
 	if args.key == string.byte('P') then Network:Send('PathRequest') end
 end)
 
+local color = Color.Magenta
 Events:Subscribe('Render', function()
 
 	if path then
