@@ -137,22 +137,25 @@ function Graph:getNearestNode(position)
 
 end
 
-function Graph:getNeighbors(node)
-	return wrap(function()
-		local x, y, z, n = node.x, node.y, node.z, node.n
-		local nodeSize = config.nodeSize
-		for _, direction in ipairs(directions) do
-			if band(n, direction[1]) > 0 then
-				local nextX = x + direction[2] * nodeSize
-				local nextZ = z + direction[3] * nodeSize
-				local nextCell = self:getCellByPositionXZ(nextX, nextZ)
-				if nextCell then
-					local neighbor = nextCell:getNode(nextX, y, nextZ)
-					if neighbor then yield(neighbor) end
+function Graph:getNeighbors(node) -- not an iterator
+	local neighbors, count = {}, 0
+	local x, y, z, n = node.x, node.y, node.z, node.n
+	local nodeSize = config.nodeSize
+	for direction, flag in ipairs(directions) do
+		if band(n, flag[1]) > 0 then
+			local nextX = x + flag[2] * nodeSize
+			local nextZ = z + flag[3] * nodeSize
+			local nextCell = self:getCellByPositionXZ(nextX, nextZ)
+			if nextCell then
+				local neighbor = nextCell:getNode(nextX, y, nextZ)
+				if neighbor then
+					neighbors[direction] = neighbor
+					count = count + 1
 				end
 			end
 		end
-	end)
+	end
+	return neighbors, count
 end
 
 function Graph:unloadCell(cellX, cellY)
@@ -242,7 +245,8 @@ function Graph:getPath(start, goal)
 			return path, visited
 		end
 
-		for neighbor in self:getNeighbors(current) do
+		local neighbors, count = self:getNeighbors(current)
+		for direction, neighbor in pairs(neighbors) do
 			if not visited[neighbor] then
 				local newCost = costSoFar[current] + current:getConnectedCost(neighbor)
 				if not frontier[neighbor] or newCost < costSoFar[neighbor] then
