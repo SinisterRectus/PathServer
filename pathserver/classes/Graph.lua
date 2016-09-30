@@ -170,38 +170,62 @@ end
 
 function Graph:loadCell(cellX, cellY)
 
-	local path = format(self.path, cellX, cellY)
-	local file = open(path, 'rb')
-	if not file then return end
+	local cell, count
+	local file = open(format(self.path, cellX, cellY), 'rb')
 
-	local stream = Stream(file)
+	if file then
 
-	assert(stream:readByte() == cellX, 'Cell X mismatch')
-	assert(stream:readByte() == cellY, 'Cell Y mismatch')
+		local stream = Stream(file)
 
-	local cellSize = config.cellSize
-	local nodeSize = config.nodeSize
+		assert(stream:readByte() == cellX, 'Cell X mismatch')
+		assert(stream:readByte() == cellY, 'Cell Y mismatch')
 
-	assert(2 ^ stream:readByte() == cellSize, 'Cell size mismatch')
-	assert(2 ^ stream:readByte() == nodeSize, 'Node size mismatch')
+		local cellSize = config.cellSize
+		local nodeSize = config.nodeSize
 
-	local count = stream:readShort()
-	local rootX = MAP_OFFSET - cellX * cellSize
-	local rootZ = MAP_OFFSET - cellY * cellSize
+		assert(2 ^ stream:readByte() == cellSize, 'Cell size mismatch')
+		assert(2 ^ stream:readByte() == nodeSize, 'Node size mismatch')
 
-	local cell = self:addCell(cellX, cellY, count)
+		count = stream:readShort()
+		cell = self:addCell(cellX, cellY, count)
 
-	for i = 1, count do
-		local x = stream:readByte()
-		local z = stream:readByte()
-		local y = stream:readShort()
-		local n = stream:readByte()
-		x = x * nodeSize - rootX
-		z = z * nodeSize - rootZ
-		cell:addNode(x, y, z, n)
+		local rootX = MAP_OFFSET - cellX * cellSize
+		local rootZ = MAP_OFFSET - cellY * cellSize
+
+		for i = 1, count do
+			local x = stream:readByte()
+			local z = stream:readByte()
+			local y = stream:readShort()
+			local n = stream:readByte()
+			x = x * nodeSize - rootX
+			z = z * nodeSize - rootZ
+			cell:addNode(x, y, z, n)
+		end
+
+		stream:close()
+
+	else
+
+		local nodeSize = config.nodeSize
+		local cellSize = config.cellSize
+
+		local xStart = cellSize * cellX - 16384
+		local xStop = xStart + cellSize - 1
+		local zStart = cellSize * cellY - 16384
+		local zStop = zStart + cellSize - 1
+
+		count = (cellSize / nodeSize) ^ 2
+		cell = self:addCell(cellX, cellY, count)
+
+		local y = config.seaLevel
+		for x = xStart, xStop, nodeSize do
+			for z = zStart, zStop, nodeSize do
+				cell:addNode(x, y, z, 255)
+			end
+		end
+
 	end
 
-	stream:close()
 	assert(cell.nodeCount == count, 'Nodes not loaded properly')
 
 	self.cellCount = self.cellCount + 1

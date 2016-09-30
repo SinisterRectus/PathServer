@@ -21,7 +21,7 @@ end
 
 function Node:getConnectedCost(other)
 	local distance = self:euclideanDistance(other)
-	return other.y == 200 and 2 * distance or distance
+	return other.y == config.seaLevel and 2 * distance or distance
 end
 
 Node.getHeuristicCost = Node[config.heuristic]
