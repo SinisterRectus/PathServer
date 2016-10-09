@@ -210,9 +210,9 @@ function Graph:loadCell(cellX, cellY)
 		local cellSize = config.cellSize
 
 		local xStart = cellSize * cellX - 16384
-		local xStop = xStart + cellSize - 1
+		local xStop = xStart + cellSize - nodeSize
 		local zStart = cellSize * cellY - 16384
-		local zStop = zStart + cellSize - 1
+		local zStop = zStart + cellSize - nodeSize
 
 		count = (cellSize / nodeSize) ^ 2
 		cell = self:addCell(cellX, cellY, count)
