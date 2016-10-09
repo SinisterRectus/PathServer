@@ -1,35 +1,24 @@
-local char = string.char
-local floor = math.floor
-local insert = table.insert
-local assert = assert
-local Vector3 = Vector3
-local SetUnicode = SetUnicode
-
 local uv = require('luv')
+local json = require('json')
 
-local function encodeNumber(n) -- int16
-	n = floor(n + 32768.5) -- offset and round
-	assert(0 <= n and n <= 65535, 'number out of range')
-	return char(floor(n % 256), floor(n / 256 % 256))
+local unpack = table.unpack
+local assert, error, ipairs = assert, error, ipairs
+local Vector3, SetUnicode = Vector3, SetUnicode
+
+local _encode = json.encode
+local function encode(tbl)
+	SetUnicode(false)
+	local str = _encode(tbl)
+	SetUnicode(true)
+	return str
 end
 
-local function decodeNumber(s) -- int16
-	local a, b = s:byte(1, 2)
-	return a + 256 * b - 32768
-end
-
-local function encodeVector(v)
-	local x = encodeNumber(v.x)
-	local y = encodeNumber(v.y)
-	local z = encodeNumber(v.z)
-	return x .. y .. z
-end
-
-local function decodeVector(s)
-	local x = decodeNumber(s:sub(1, 2))
-	local y = decodeNumber(s:sub(3, 4))
-	local z = decodeNumber(s:sub(5, 6))
-	return Vector3(x, y, z)
+local _decode = json.decode
+local function decode(str)
+	SetUnicode(false)
+	local tbl = _decode(str)
+	SetUnicode(true)
+	return tbl
 end
 
 class 'PathServer'
@@ -63,7 +52,7 @@ function PathServer:connect(host, port)
 	loop:start(function() -- called every JCMP server PreTick
 		if ready and queue:getCount() > 0 then
 			ready = false
-			handle:write(queue:popLeft())
+			handle:write(encode(queue:popLeft()))
 		end
 	end)
 
@@ -75,43 +64,35 @@ end
 function PathServer:getPath(start, stop, callback)
 
 	if not self.handle then return error('PathServer not connected') end
-	if self.callbacks[self.pool] then return error('Too many path requests') end
+	local id = self.pool
+	if self.callbacks[id] then return error('Too many path requests') end
 
-	local id = char(self.pool) -- might increase to two bytes
-	local v1 = encodeVector(start)
-	local v2 = encodeVector(stop)
+	self.queue:pushRight({
+		id = id,
+		start = {start.x, start.y, start.z},
+		stop = {stop.x, stop.y, stop.z},
+	})
 
-	self.queue:pushRight(id .. v1 .. v2)
-	self.callbacks[self.pool] = callback
-	self.pool = self.pool < 255 and self.pool + 1 or 0
+	self.callbacks[id] = callback
+	self.pool = id < 255 and id + 1 or 0
 
 end
 
 function PathServer:processData(data)
 
-	SetUnicode(false)
+	data = decode(data)
+	local id = data.id
 
-	local type = data:sub(1, 1)
-	local id = data:sub(2, 2):byte()
-	local path = nil
-
-	if type == '0' then
-		return
-	elseif type =='1' then
-		self.callbacks[id]({error = 'Path endpoints too far apart!'})
-	elseif type == '2' then
-		self.callbacks[id]({error = 'Path could not be found!'})
-	elseif type == '3' then
-		path = {}
-		for i = 3, #data, 6 do
-			local str = data:sub(i, i + 5)
-			insert(path, decodeVector(str))
+	if id then
+		local path = data.path
+		if path then
+			for i, v in ipairs(path) do
+				path[i] = Vector3(unpack(v))
+			end
 		end
-		self.callbacks[id]({path = path})
+		self.callbacks[id](data)
+		self.callbacks[id] = nil
 	end
-
-	self.callbacks[id] = nil
-	SetUnicode(true)
 
 end
 

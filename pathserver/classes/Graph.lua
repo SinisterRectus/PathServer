@@ -1,13 +1,15 @@
+local uv = require('uv')
+local json = require('json')
+
 local time = os.time
 local open = io.open
 local band = bit.band
 local format = string.format
-local insert = table.insert
+local unpack = table.unpack
 local min, max = math.min, math.max
 local wrap, yield = coroutine.wrap, coroutine.yield
 local floor, random = math.floor, math.random
-
-local uv = require('uv')
+local encode, decode = json.encode, json.decode
 
 local class = require('../class')
 local enums = require('../enums')
@@ -18,6 +20,7 @@ local constants = require('../constants')
 local Cell = require('./Cell')
 local Deque = require('./Deque')
 local Stream = require('./Stream')
+local Vector3 = require('./Vector3')
 
 local HUGE = math.huge
 local MAP_OFFSET = constants.MAP_OFFSET
@@ -305,7 +308,7 @@ function Graph:startServer(host, port)
 				p('Path client disconnected')
 			end
 		end)
-		client:write('0')
+		client:write('{}')
 	end)
 	p(format('Listening for connections at %s on port %s', host, port))
 	self.server = server
@@ -313,16 +316,17 @@ end
 
 function Graph:processData(data, client)
 
-	local id = data:sub(1, 1)
-	local v1 = decodeVector(data:sub(2, 7))
-	local v2 = decodeVector(data:sub(8, 13))
+	data = decode(data)
+
+	local v1 = Vector3(unpack(data.start)); data.start = nil
+	local v2 = Vector3(unpack(data.stop)); data.stop = nil
 	local cellX1, cellY1 = self:getCellXYByPositionXZ(v1.x, v1.z)
 	local cellX2, cellY2 = self:getCellXYByPositionXZ(v2.x, v2.z)
 	local minX, maxX = min(cellX1, cellX2), max(cellX1, cellX2)
 	local minY, maxY = min(cellY1, cellY2), max(cellY1, cellY2)
 
 	if maxX - minX > 1 or maxY - minY > 1 then
-		client:write('1' .. id)
+		data.error = 'Path endpoints too far apart!'
 	else
 		for x = minX, maxX do
 			for y = minY, maxY do
@@ -337,17 +341,17 @@ function Graph:processData(data, client)
 		local n1 = self:getNearestNode(v1)
 		local n2 = self:getNearestNode(v2)
 		local path, visited = self:getPath(n1, n2)
-
 		if path then
-			local res = {'3', id}
-			for _, node in ipairs(path) do
-				insert(res, encodeVector(node))
+			for i, v in ipairs(path) do
+				path[i] = {v.x, v.y, v.z}
 			end
-			client:write(res)
+			data.path = path
 		else
-			client:write('2' .. id)
+			data.error = 'Path could not be found!'
 		end
 	end
+
+	client:write(encode(data))
 
 	self:manageMemory()
 
