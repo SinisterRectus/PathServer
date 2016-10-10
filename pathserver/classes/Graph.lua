@@ -292,71 +292,63 @@ end
 
 function Graph:startServer(host, port)
 	p('Starting path server...')
-	local server = uv.new_tcp()
-	server:bind(host, port)
-	server:listen(256, function(err)
-		assert(not err, err)
-		local client = uv.new_tcp()
-		server:accept(client)
-		p('Path client connected')
-		client:read_start(function(err, data)
-			if data then
-				self:processData(data, client)
-			else
-				client:shutdown()
-				client:close()
-				p('Path client disconnected')
-			end
-		end)
-		client:write('{}')
+	local udp = uv.new_udp()
+	udp:bind(host, port)
+	udp:recv_start(function(err, data, sender)
+		self:processData(data, sender)
 	end)
-	p(format('Listening for connections at %s on port %s', host, port))
-	self.server = server
+	self.udp = udp
+	p(format('Listening for requests at %s on port %s', host, port))
 end
 
-function Graph:processData(data, client)
+function Graph:processData(data, sender)
 
 	data = decode(data)
 
-	local v1 = Vector3(unpack(data.start)); data.start = nil
-	local v2 = Vector3(unpack(data.stop)); data.stop = nil
-	local cellX1, cellY1 = self:getCellXYByPositionXZ(v1.x, v1.z)
-	local cellX2, cellY2 = self:getCellXYByPositionXZ(v2.x, v2.z)
-	local minX, maxX = min(cellX1, cellX2), max(cellX1, cellX2)
-	local minY, maxY = min(cellY1, cellY2), max(cellY1, cellY2)
+	if data.handshake then
 
-	if maxX - minX > 1 or maxY - minY > 1 then
-		data.error = 'Path endpoints too far apart!'
-	else
-		for x = minX, maxX do
-			for y = minY, maxY do
-				local cell = self:getCell(x, y)
-				if cell then
-					cell.lastVisited = time()
-				else
-					cell = self:loadCell(x, y)
+		self.udp:send('{}', sender.ip, sender.port)
+
+	elseif data.start and data.stop then
+
+		local v1 = Vector3(unpack(data.start)); data.start = nil
+		local v2 = Vector3(unpack(data.stop)); data.stop = nil
+		local cellX1, cellY1 = self:getCellXYByPositionXZ(v1.x, v1.z)
+		local cellX2, cellY2 = self:getCellXYByPositionXZ(v2.x, v2.z)
+		local minX, maxX = min(cellX1, cellX2), max(cellX1, cellX2)
+		local minY, maxY = min(cellY1, cellY2), max(cellY1, cellY2)
+
+		if maxX - minX > 1 or maxY - minY > 1 then
+			data.error = 'Path endpoints too far apart!'
+		else
+			for x = minX, maxX do
+				for y = minY, maxY do
+					local cell = self:getCell(x, y)
+					if cell then
+						cell.lastVisited = time()
+					else
+						cell = self:loadCell(x, y)
+					end
 				end
 			end
-		end
-		local n1 = self:getNearestNode(v1)
-		local n2 = self:getNearestNode(v2)
-		local path, visited = self:getPath(n1, n2)
-		if path then
-			for i, v in ipairs(path) do
-				path[i] = {v.x, v.y, v.z}
+			local n1 = self:getNearestNode(v1)
+			local n2 = self:getNearestNode(v2)
+			local path, visited = self:getPath(n1, n2)
+			if path then
+				for i, v in ipairs(path) do
+					path[i] = {v.x, v.y, v.z}
+				end
+				data.path = path
+			else
+				data.error = 'Path could not be found!'
 			end
-			data.path = path
-		else
-			data.error = 'Path could not be found!'
 		end
+		self:manageMemory()
+		self.udp:send(encode(data), sender.ip, sender.port)
+
 	end
 
-	client:write(encode(data))
-
-	self:manageMemory()
-
 end
-
 
 function Graph:manageMemory()
 	if self.cellCount > config.cellLimit then
