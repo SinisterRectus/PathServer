@@ -295,31 +295,30 @@ function Graph:startServer(host, port)
 	local udp = uv.new_udp()
 	udp:bind(host, port)
 	udp:recv_start(function(err, data, sender)
-		self:processData(data, sender)
+		self:handleRequest(data, sender)
 	end)
 	self.udp = udp
 	p(format('Listening for requests at %s on port %s', host, port))
 end
 
-function Graph:processData(data, sender)
+function Graph:handleRequest(incoming, sender)
 
-	data = decode(data)
+	incoming = decode(incoming)
+	local id = incoming.id
+	local method = incoming.method
+	local outgoing = {id = id, method = method}
 
-	if data.handshake then
+	if method == 'getPath' then
 
-		self.udp:send('{}', sender.ip, sender.port)
-
-	elseif data.start and data.stop then
-
-		local v1 = Vector3(unpack(data.start)); data.start = nil
-		local v2 = Vector3(unpack(data.stop)); data.stop = nil
+		local v1 = Vector3(unpack(incoming.start))
+		local v2 = Vector3(unpack(incoming.stop))
 		local cellX1, cellY1 = self:getCellXYByPositionXZ(v1.x, v1.z)
 		local cellX2, cellY2 = self:getCellXYByPositionXZ(v2.x, v2.z)
 		local minX, maxX = min(cellX1, cellX2), max(cellX1, cellX2)
 		local minY, maxY = min(cellY1, cellY2), max(cellY1, cellY2)
 
 		if maxX - minX > 1 or maxY - minY > 1 then
-			data.error = 'Path endpoints too far apart!'
+			outgoing.error = 'Path endpoints too far apart!'
 		else
 			for x = minX, maxX do
 				for y = minY, maxY do
@@ -338,15 +337,16 @@ function Graph:processData(data, sender)
 				for i, v in ipairs(path) do
 					path[i] = {v.x, v.y, v.z}
 				end
-				data.path = path
+				outgoing.path = path
 			else
-				data.error = 'Path could not be found!'
+				outgoing.error = 'Path could not be found!'
 			end
 		end
 		self:manageMemory()
-		self.udp:send(encode(data), sender.ip, sender.port)
 
 	end
+
+	self.udp:send(encode(outgoing), sender.ip, sender.port)
 
 end
 
