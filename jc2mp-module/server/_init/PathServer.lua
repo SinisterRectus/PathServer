@@ -55,6 +55,12 @@ function PathServer:getPath(start, stop, callback)
 	}, callback)
 end
 
+function PathServer:getNearestNode(position, callback)
+	return self:sendRequest('getNearestNode', {
+		position = {position.x, position.y, position.z}
+	}, callback)
+end
+
 function PathServer:sendRequest(method, data, callback)
 
 	local id = self.pool
@@ -89,6 +95,9 @@ function PathServer:handleResponse(data)
 				path[i] = Vector3(unpack(v))
 			end
 		end
+	elseif data.method == 'getNearestNode' then
+		local position = data.position
+		data.position = Vector3(unpack(position))
 	end
 	data.method = nil
 

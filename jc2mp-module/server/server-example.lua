@@ -1,8 +1,6 @@
 local function getPathForPlayer(server, player)
-
 	local start = player:GetPosition()
 	local stop = player:GetAimTarget().position
-
 	server:getPath(start, stop, function(args)
 		if args.error then
 			Chat:Send(player, args.error, Color.Silver)
@@ -12,7 +10,16 @@ local function getPathForPlayer(server, player)
 			})
 		end
 	end)
+end
 
+local function getNearestNodeForPlayer(server, player)
+	server:getNearestNode(player:GetPosition(), function(args)
+		if args.error then
+			Chat:Send(player, args.error, Color.Silver)
+		else
+			Network:Send(player, 'NearestNode', args)
+		end
+	end)
 end
 
 -- initialize a path server
@@ -25,11 +32,8 @@ Network:Subscribe('PathRequest', function(_, player)
 end)
 
 -- adjust the time delay and uncomment the function call to run
-local function stressTest()
-
-	local timer = Timer()
-	local delay = 500 -- milliseconds
-
+local function pathStressTest()
+	local timer, delay = Timer(), 500 -- milliseconds
 	Events:Subscribe('PostTick', function()
 		if timer:GetMilliseconds() < delay then return end
 		timer:Restart()
@@ -40,6 +44,17 @@ local function stressTest()
 			end
 		end
 	end)
-
 end
--- stressTest()
+-- pathStressTest()
+
+local function nearestNodeStressTest()
+	local timer, delay = Timer(), 500 -- milliseconds
+	Events:Subscribe('PostTick', function()
+		if timer:GetMilliseconds() < delay then return end
+		timer:Restart()
+		for player in Server:GetPlayers() do
+			getNearestNodeForPlayer(pathServer, player)
+		end
+	end)
+end
+-- nearestNodeStressTest()

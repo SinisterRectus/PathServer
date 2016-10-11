@@ -59,7 +59,9 @@ end
 
 function Graph:getCell(cellX, cellY)
 	local cells = self.cells
-	return cells[cellX] and cells[cellX][cellY] or nil
+	local cell = cells[cellX] and cells[cellX][cellY] or nil
+	if cell then cell.lastVisited = time() end -- hack for memory management
+	return cell
 end
 
 function Graph:getCellXYByPositionXZ(x, z)
@@ -322,12 +324,7 @@ function Graph:handleRequest(incoming, sender)
 		else
 			for x = minX, maxX do
 				for y = minY, maxY do
-					local cell = self:getCell(x, y)
-					if cell then
-						cell.lastVisited = time()
-					else
-						cell = self:loadCell(x, y)
-					end
+					local cell = self:getCell(x, y) or self:loadCell(x, y)
 				end
 			end
 			local n1 = self:getNearestNode(v1)
@@ -342,6 +339,16 @@ function Graph:handleRequest(incoming, sender)
 				outgoing.error = 'Path could not be found!'
 			end
 		end
+		self:manageMemory()
+
+	elseif incoming.method == 'getNearestNode' then
+
+		local v = Vector3(unpack(incoming.position))
+		local x, y = self:getCellXYByPositionXZ(v.x, v.z)
+		local cell = self:getCell(x, y) or self:loadCell(x, y)
+		local node = cell:getNearestNode(v)
+		outgoing.position = {node.x, node.y, node.z}
+		outgoing.n = node.n
 		self:manageMemory()
 
 	end

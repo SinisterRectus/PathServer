@@ -21,7 +21,7 @@ function Cell:__init(x, y, count)
 	self.nodes = {}
 	self.nodeCount = 0
 	self.averageHeight = 0
-	self.lastVisited = time()
+	self.lastVisited = time() -- hack for memory mamangement
 end
 
 function Cell:__tostring()
