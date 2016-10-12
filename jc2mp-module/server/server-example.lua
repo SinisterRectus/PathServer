@@ -5,9 +5,7 @@ local function getPathForPlayer(server, player)
 		if args.error then
 			Chat:Send(player, args.error, Color.Silver)
 		else
-			Network:Send(player, 'NewPath', {
-				start = start, stop = stop, path = args.path,
-			})
+			Network:Send(player, 'NewPath', args)
 		end
 	end)
 end

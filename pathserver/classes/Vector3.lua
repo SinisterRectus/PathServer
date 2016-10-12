@@ -1,10 +1,9 @@
-local format = string.format
-local abs, sqrt, min = math.abs, math.sqrt, math.min
-
 local ffi = require('ffi')
-
 local class = require('../class')
 local constants = require('../constants')
+
+local format = string.format
+local abs, sqrt, min = math.abs, math.sqrt, math.min
 
 local DIAGONAL_DIFF = constants.DIAGONAL_DIFF
 

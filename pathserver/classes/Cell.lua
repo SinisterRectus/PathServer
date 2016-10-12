@@ -1,8 +1,3 @@
-local time = os.time
-local format = string.format
-local wrap, yield = coroutine.wrap, coroutine.yield
-local floor, random, abs = math.floor, math.random, math.abs
-
 local Node = require('../classes/Node')
 local Vector3 = require('../classes/Vector3')
 
@@ -10,12 +5,17 @@ local class = require('../class')
 local config = require('../config')
 local constants = require('../constants')
 
+local time = os.time
+local format = string.format
+local wrap, yield = coroutine.wrap, coroutine.yield
+local floor, random, abs = math.floor, math.random, math.abs
+
 local HUGE = math.huge
 local MAP_OFFSET = constants.MAP_OFFSET
 
 local Cell = class('Cell')
 
-function Cell:__init(x, y, count)
+function Cell:__init(x, y)
 	self.x = x
 	self.y = y
 	self.nodes = {}

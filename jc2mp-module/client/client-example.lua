@@ -1,6 +1,6 @@
-local path, start, stop
+local path
 Network:Subscribe('NewPath', function(args)
-	start, stop, path = args.start, args.stop, args.path
+	path = args.path
 end)
 
 local position, n
@@ -24,8 +24,6 @@ Events:Subscribe('Render', function()
 		end
 	end
 
-	if start then Render:DrawCircle(start, 0.2, color1) end
-	if stop then Render:DrawCircle(stop, 0.2, color1) end
 	if position then
 		Render:DrawCircle(position, 0.2, color2)
 		if n then

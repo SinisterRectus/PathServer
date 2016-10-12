@@ -1,6 +1,16 @@
 local uv = require('uv')
 local json = require('json')
 
+local class = require('../class')
+local enums = require('../enums')
+local config = require('../config')
+local constants = require('../constants')
+
+local Cell = require('./Cell')
+local Deque = require('./Deque')
+local Stream = require('./Stream')
+local Vector3 = require('./Vector3')
+
 local time = os.time
 local open = io.open
 local band = bit.band
@@ -10,17 +20,6 @@ local min, max = math.min, math.max
 local wrap, yield = coroutine.wrap, coroutine.yield
 local floor, random = math.floor, math.random
 local encode, decode = json.encode, json.decode
-
-local class = require('../class')
-local enums = require('../enums')
-local codecs = require('../codecs')
-local config = require('../config')
-local constants = require('../constants')
-
-local Cell = require('./Cell')
-local Deque = require('./Deque')
-local Stream = require('./Stream')
-local Vector3 = require('./Vector3')
 
 local HUGE = math.huge
 local MAP_OFFSET = constants.MAP_OFFSET
@@ -36,9 +35,6 @@ local directions = {
 	{0x80,-1, 1}, -- backward left
 }
 
-local encodeVector = codecs.encodeVector
-local decodeVector = codecs.decodeVector
-
 local Graph = class('Graph')
 
 function Graph:__init()
@@ -49,9 +45,9 @@ function Graph:__init()
 	self.path = config.pathToCells .. '/%s_%s.cell'
 end
 
-function Graph:addCell(cellX, cellY, count)
+function Graph:addCell(cellX, cellY)
 	local cells = self.cells
-	local cell = Cell(cellX, cellY, count)
+	local cell = Cell(cellX, cellY)
 	cells[cellX] = cells[cellX] or {}
 	cells[cellX][cellY] = cell
 	return cell
@@ -192,7 +188,7 @@ function Graph:loadCell(cellX, cellY)
 		assert(2 ^ stream:readByte() == nodeSize, 'Node size mismatch')
 
 		count = stream:readShort()
-		cell = self:addCell(cellX, cellY, count)
+		cell = self:addCell(cellX, cellY)
 
 		local rootX = MAP_OFFSET - cellX * cellSize
 		local rootZ = MAP_OFFSET - cellY * cellSize
@@ -220,7 +216,7 @@ function Graph:loadCell(cellX, cellY)
 		local zStop = zStart + cellSize - nodeSize
 
 		count = (cellSize / nodeSize) ^ 2
-		cell = self:addCell(cellX, cellY, count)
+		cell = self:addCell(cellX, cellY)
 
 		local y = config.seaLevel
 		for x = xStart, xStop, nodeSize do
@@ -231,7 +227,7 @@ function Graph:loadCell(cellX, cellY)
 
 	end
 
-	assert(cell.nodeCount == count, 'Nodes not loaded properly')
+	assert(cell.nodeCount == count, 'Cell not loaded properly')
 
 	self.cellCount = self.cellCount + 1
 	self.nodeCount = self.nodeCount + cell.nodeCount
@@ -341,7 +337,7 @@ function Graph:handleRequest(incoming, sender)
 		end
 		self:manageMemory()
 
-	elseif incoming.method == 'getNearestNode' then
+	elseif method == 'getNearestNode' then
 
 		local v = Vector3(unpack(incoming.position))
 		local x, y = self:getCellXYByPositionXZ(v.x, v.z)
