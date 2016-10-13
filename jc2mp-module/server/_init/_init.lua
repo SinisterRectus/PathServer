@@ -1,2 +1,4 @@
 local run = require('luv').run
-Events:Subscribe('PreTick', function() run('nowait') end)
+local poll = function() return run('nowait') end
+Events:Subscribe('PreTick', poll)
+Events:Subscribe('PostTick', poll)
