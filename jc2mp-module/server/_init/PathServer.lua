@@ -23,7 +23,7 @@ function PathServer:connect(host, port)
 	local callbacks = self.callbacks
 
 	udp:recv_start(function(err, data, sender)
-		self:handleResponse(data)
+		if data then self:handleResponse(data) end
 	end)
 
 	idle:start(function() -- called every JCMP server tick

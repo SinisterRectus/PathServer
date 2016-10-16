@@ -293,7 +293,7 @@ function Graph:startServer(host, port)
 	local udp = uv.new_udp()
 	udp:bind(host, port)
 	udp:recv_start(function(err, data, sender)
-		self:handleRequest(data, sender)
+		if data then self:handleRequest(data, sender) end
 	end)
 	self.udp = udp
 	p(format('Listening for requests at %s on port %s', host, port))
